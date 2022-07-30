@@ -101,7 +101,7 @@ func AddCourse(d MSDSCourse) int {
 		return courseID
 	}
 
-	insertStatement = `insert into "coursedata" ("id", "cid", "cname", "cprereq")
+	insertStatement = `insert into "coursedata" ("courseid", "cid", "cname", "cprereq")
 	values ($1, $2, $3, $4)`
 	_, err = db.Exec(insertStatement, courseID, d.CID, d.CNAME, d.CPREREQ)
 	if err != nil {
@@ -195,7 +195,7 @@ func UpdateCourse(d MSDSCourse) error {
 	}
 	defer db.Close()
 
-	courseID := exists(d.CID)
+	courseID := exists(d.Coursecode)
 	if courseID == -1 {
 		return errors.New("Course does not exist")
 	}
