@@ -101,7 +101,7 @@ func AddCourse(d MSDSCourse) int {
 		return courseID
 	}
 
-	insertStatement = `insert into "coursedata" ("courseid", "cid", "cname", "cprereq")
+	insertStatement = `insert into "msdscoursecatalog" ("courseid", "cid", "cname", "cprereq")
 	values ($1, $2, $3, $4)`
 	_, err = db.Exec(insertStatement, courseID, d.CID, d.CNAME, d.CPREREQ)
 	if err != nil {
@@ -138,7 +138,7 @@ func DeleteCourse(id int) error {
 	}
 
 	// Delete from MSDSCourse
-	deleteStatement := `delete from "coursedata" where courseid=$1`
+	deleteStatement := `delete from "msdscoursecatalog" where courseid=$1`
 	_, err = db.Exec(deleteStatement, id)
 	if err != nil {
 		return err
@@ -164,8 +164,8 @@ func ListCourses() ([]MSDSCourse, error) {
 	defer db.Close()
 
 	rows, err := db.Query(`SELECT "id","coursecode","cid","cname","cprereq"
-		FROM "courses","coursedata"
-		WHERE courses.id = coursedata.courseid`)
+		FROM "courses","msdscoursecatalog"
+		WHERE courses.id = msdscoursecatalog.courseid`)
 	if err != nil {
 		return Data, err
 	}
@@ -200,7 +200,7 @@ func UpdateCourse(d MSDSCourse) error {
 		return errors.New("Course does not exist")
 	}
 	d.ID = courseID
-	updateStatement := `update "coursedata" set "cid"=$1, "cname"=$2, "cprereq"=$3 where "courseid"=$4`
+	updateStatement := `update "msdscoursecatalog" set "cid"=$1, "cname"=$2, "cprereq"=$3 where "courseid"=$4`
 	_, err = db.Exec(updateStatement, d.CID, d.CNAME, d.CPREREQ, d.ID)
 	if err != nil {
 		return err
