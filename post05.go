@@ -173,11 +173,11 @@ func ListCourses() ([]MSDSCourse, error) {
 	for rows.Next() {
 		var id int
 		var coursecode string
-		var courseid string
-		var coursename string
-		var prerequisite string
-		err = rows.Scan(&id, &coursecode, &courseid, &coursename, &prerequisite)
-		temp := MSDSCourse{ID: id, Coursecode: coursecode, CID: courseid, CNAME: coursename, CPREREQ: prerequisite}
+		var cid string
+		var cname string
+		var cprereq string
+		err = rows.Scan(&id, &coursecode, &cid, &cname, &cprereq)
+		temp := MSDSCourse{ID: id, Coursecode: coursecode, CID: cid, CNAME: cname, CPREREQ: cprereq}
 		Data = append(Data, temp)
 		if err != nil {
 			return Data, err
@@ -200,7 +200,7 @@ func UpdateCourse(d MSDSCourse) error {
 		return errors.New("Course does not exist")
 	}
 	d.ID = courseID
-	updateStatement := `update "coursedata" set "courseid"=$1, "coursename"=$2, "prerequisite"=$3 where "courseid"=$4`
+	updateStatement := `update "coursedata" set "cid"=$1, "cname"=$2, "cprereq"=$3 where "courseid"=$4`
 	_, err = db.Exec(updateStatement, d.CID, d.CNAME, d.CPREREQ, d.ID)
 	if err != nil {
 		return err
