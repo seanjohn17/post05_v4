@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"encoding/json"
 
 	_ "github.com/lib/pq"
 )
@@ -21,9 +22,9 @@ var (
 // Userdata is for holding full user data
 // Userdata table + Username
 type MSDSCourse struct {
-	CID         string 'json:"course_ID"'
-	CNAME       string 'json:"course_name"'
-	CPREREQ     string 'json:"prerequisite"'
+	CID         string `json:"course_ID"`
+	CNAME       string `json:"course_name"`
+	CPREREQ     string `json:"prerequisite"`
 }
 
 func openConnection() (*sql.DB, error) {
@@ -169,7 +170,7 @@ func ListCourses() ([]MSDSCourse, error) {
 	}
 
 	for rows.Next() {
-		var CID int
+		var CID string
 		var CNAME string
 		var CPREREQ string
 		err = rows.Scan(&CID, &CNAME, &CPREREQ)
