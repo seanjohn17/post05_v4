@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"encoding/json"
 
 	_ "github.com/lib/pq"
 )
@@ -19,9 +18,10 @@ var (
 	Database = ""
 )
 
-// Userdata is for holding full user data
-// Userdata table + Username
+// MSDSCourse is for holding full course data
+// Coursedata table + Coursename
 type MSDSCourse struct {
+	ID          int
 	CID         string `json:"course_ID"`
 	CNAME       string `json:"course_name"`
 	CPREREQ     string `json:"prerequisite"`
@@ -41,9 +41,9 @@ func openConnection() (*sql.DB, error) {
 }
 
 // The function returns the Course ID of the course
-// -1 if the user does not exist
-func exists(CNAME string) int {
-	CNAME = strings.ToLower(CNAME)
+// -1 if the course does not exist
+func exists(CID string) int {
+	CID = strings.ToLower(CID)
 
 	db, err := openConnection()
 	if err != nil {
@@ -52,28 +52,28 @@ func exists(CNAME string) int {
 	}
 	defer db.Close()
 
-	CID := -1
-	statement := fmt.Sprintf(`SELECT "CID" FROM "Courses" where CNAME = '%s'`, CNAME)
+	courseID := -1
+	statement := fmt.Sprintf(`SELECT "ID" FROM "Courses" where CID = '%s'`, CID)
 	rows, err := db.Query(statement)
 
 	for rows.Next() {
-		var CID int
-		err = rows.Scan(&CID)
+		var ID int
+		err = rows.Scan(&ID)
 		if err != nil {
 			fmt.Println("Scan", err)
 			return -1
 		}
-		CID = CID
+		courseID = ID
 	}
 	defer rows.Close()
-	return CID
+	return courseID
 }
 
-// AddUser adds a new user to the database
-// Returns new User ID
+// AddCourse adds a new course to the database
+// Returns new Course ID
 // -1 if there was an error
 func AddCourse(d MSDSCourse) int {
-	d.CNAME = strings.ToLower(d.CNAME)
+	d.CID = strings.ToLower(d.CID)
 
 	db, err := openConnection()
 	if err != nil {
@@ -82,36 +82,36 @@ func AddCourse(d MSDSCourse) int {
 	}
 	defer db.Close()
 
-	CID := exists(d.CNAME)
-	if CID != -1 {
+	courseID := exists(d.CID)
+	if courseID != -1 {
 		fmt.Println("Course already exists:", CID)
 		return -1
 	}
 
 	insertStatement := `insert into "Courses" ("CID") values ($1)`
-	_, err = db.Exec(insertStatement, d.CNAME)
+	_, err = db.Exec(insertStatement, d.CID)
 	if err != nil {
 		fmt.Println(err)
 		return -1
 	}
 
-	CID = exists(d.CNAME)
-	if CID == -1 {
-		return CID
+	courseID = exists(d.CID)
+	if courseID == -1 {
+		return courseID
 	}
 
-	insertStatement = `insert into "Coursedata" ("CID", "CNAME", "CPREREQ")
-	values ($1, $2, $3)`
-	_, err = db.Exec(insertStatement, CID, d.CNAME, d.CPREREQ)
+	insertStatement = `insert into "Coursedata" ("ID", "CID", "CNAME", "CPREREQ")
+	values ($1, $2, $3, $4)`
+	_, err = db.Exec(insertStatement, courseID, d.CID, d.CNAME, d.CPREREQ)
 	if err != nil {
 		fmt.Println("db.Exec()", err)
 		return -1
 	}
 
-	return CID
+	return courseID
 }
 
-// DeleteUser deletes an existing user
+// DeleteCourse deletes an existing course
 func DeleteCourse(id int) error {
 	db, err := openConnection()
 	if err != nil {
@@ -120,24 +120,24 @@ func DeleteCourse(id int) error {
 	defer db.Close()
 
 	// Does the ID exist?
-	statement := fmt.Sprintf(`SELECT "CNAME" FROM "Courses" where id = %d`, id)
+	statement := fmt.Sprintf(`SELECT "CID" FROM "Courses" where id = %d`, id)
 	rows, err := db.Query(statement)
 
-	var CNAME string
+	var CID string
 	for rows.Next() {
-		err = rows.Scan(&CNAME)
+		err = rows.Scan(&CID)
 		if err != nil {
 			return err
 		}
 	}
 	defer rows.Close()
 
-	if exists(CNAME) != id {
+	if exists(CID) != id {
 		return fmt.Errorf("Course with ID %d does not exist", id)
 	}
 
 	// Delete from MSDSCourse
-	deleteStatement := `delete from "Coursedata" where CID=$1`
+	deleteStatement := `delete from "Coursedata" where ID=$1`
 	_, err = db.Exec(deleteStatement, id)
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func ListCourses() ([]MSDSCourse, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query(`SELECT "CID","CNAME","CPREREQ"
+	rows, err := db.Query(`SELECT "ID","CID","CNAME","CPREREQ"
 		FROM "Courses","Coursedata"
 		WHERE Courses.CID = Coursedata.CID`)
 	if err != nil {
@@ -170,11 +170,12 @@ func ListCourses() ([]MSDSCourse, error) {
 	}
 
 	for rows.Next() {
-		var CID string
-		var CNAME string
-		var CPREREQ string
-		err = rows.Scan(&CID, &CNAME, &CPREREQ)
-		temp := MSDSCourse{CID: CID, CNAME: CNAME, CPREREQ: CPREREQ}
+		var id int
+		var courseid string
+		var coursename string
+		var prerequisite string
+		err = rows.Scan(&id, &courseid, &coursename, &prerequisite)
+		temp := MSDSCourse{ID: id, CID: courseid, CNAME: coursename, CPREREQ: prerequisite}
 		Data = append(Data, temp)
 		if err != nil {
 			return Data, err
@@ -192,13 +193,13 @@ func UpdateCourse(d MSDSCourse) error {
 	}
 	defer db.Close()
 
-	CID := exists(d.CNAME)
-	if CID == -1 {
+	courseID := exists(d.CID)
+	if courseID == -1 {
 		return errors.New("Course does not exist")
 	}
-	d.CID = CID
-	updateStatement := `update "msdscourse" set "coursename"=$1, "prerequisite"=$2 where "courseid"=$4`
-	_, err = db.Exec(updateStatement, d.CNAME, d.CPREREQ, d.CID)
+	d.ID = courseID
+	updateStatement := `update "msdscourse" set "courseid"=$1, "coursename"=$2, "prerequisite"=$3 where "courseid"=$4`
+	_, err = db.Exec(updateStatement, d.CID, d.CNAME, d.CPREREQ, d.ID)
 	if err != nil {
 		return err
 	}
