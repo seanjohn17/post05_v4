@@ -84,7 +84,7 @@ func AddCourse(d MSDSCourse) int {
 
 	courseID := exists(d.CID)
 	if courseID != -1 {
-		fmt.Println("Course already exists:", CID)
+		fmt.Println("Course already exists:", d.CID)
 		return -1
 	}
 
